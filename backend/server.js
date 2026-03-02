@@ -3,12 +3,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import router from "./routes/routes.js";
 import admin from "./config/firebase.js";
+import pricesRouter from "./routes/prices.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const pricesRouter = require('./routes/prices')
 
 // Verify Firebase initialization
 console.log("Firebase Admin initialized:", admin.apps.length ? "✓" : "✗");
@@ -27,7 +27,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api", router);
-app.use('/api/prices', pricesRouter)
+app.use("/api/prices", pricesRouter);
 
 // Start server
 app.listen(PORT, () => {
