@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useWorkflow } from '../../context/WorkflowContext'
 import { useAuth } from '../../context/AuthContext'
 
 const NAV = [
@@ -7,18 +6,9 @@ const NAV = [
   { to: '/executions', label: 'History',   icon: '◎' },
 ]
 
-const STATUS_CONFIG = {
-  live:       { color: '#22c55e', label: 'LIVE',  pulse: true  },
-  stale:      { color: '#f59e0b', label: 'STALE', pulse: false },
-  error:      { color: '#ef4444', label: 'ERROR', pulse: false },
-  connecting: { color: '#94a3b8', label: '...',   pulse: false },
-}
-
 export default function Topbar({ workflowName, setWorkflowName, onActivate, isActive, nodeCount, edgeCount, isBuilder }) {
   const location = useLocation()
-  const { prices, priceChanges, priceStatus } = useWorkflow()
   const { user, logout } = useAuth()
-  const statusCfg = STATUS_CONFIG[priceStatus || 'connecting']
 
   return (
     <header style={{
@@ -66,30 +56,8 @@ export default function Topbar({ workflowName, setWorkflowName, onActivate, isAc
         </>
       )}
 
-      {/* Live price ticker */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 28, padding: '0 24px', overflow: 'hidden', justifyContent: 'center' }}>
-        {/* Status dot */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: statusCfg.color, boxShadow: statusCfg.pulse ? `0 0 6px ${statusCfg.color}` : 'none', animation: statusCfg.pulse ? 'pulse-dot 2s ease-in-out infinite' : 'none' }} />
-          <span style={{ color: statusCfg.color, fontSize: 8, fontWeight: 700, letterSpacing: 1 }}>{statusCfg.label}</span>
-        </div>
-
-        {Object.entries(prices).map(([sym, price]) => {
-          const change = priceChanges?.[sym] ?? 0
-          const up = change >= 0
-          return (
-            <div key={sym} style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              <span style={{ color: 'var(--text-faint)', fontSize: 10, fontWeight: 700 }}>{sym}</span>
-              <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
-                ${sym === 'DOGE' ? price.toFixed(4) : price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-              <span style={{ color: up ? '#22c55e' : '#ef4444', fontSize: 9, fontWeight: 600 }}>
-                {up ? '▲' : '▼'} {Math.abs(change).toFixed(2)}%
-              </span>
-            </div>
-          )
-        })}
-      </div>
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
 
       {isBuilder && (
         <div style={{ padding: '0 16px', borderLeft: '1px solid var(--border)', height: '100%', display: 'flex', alignItems: 'center' }}>

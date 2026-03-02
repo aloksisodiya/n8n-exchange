@@ -155,7 +155,7 @@ function WorkflowCard({ workflow, onToggle, onDelete }) {
 }
 
 export default function Dashboard() {
-  const { workflows, toggleWorkflow, deleteWorkflow, prices, priceChanges } = useWorkflow()
+  const { workflows, toggleWorkflow, deleteWorkflow } = useWorkflow()
 
   const activeCount    = workflows.filter(w => w.isActive).length
 
@@ -179,7 +179,6 @@ export default function Dashboard() {
         <div style={{ display: 'flex', gap: 16 }}>
           <StatCard label="Total Workflows" value={workflows.length} color="var(--accent-blue)"   icon="⬡" />
           <StatCard label="Active Now"       value={activeCount}       color="var(--accent-green)"  icon="▶" />
-          <StatCard label="Assets Tracked"   value={Object.keys(prices).length} color="var(--accent-purple)" icon="◎" />
         </div>
 
       

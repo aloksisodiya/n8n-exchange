@@ -33,12 +33,6 @@ export const workflowAPI = {
   getExecutions:(id)         => api.get(`/workflows/${id}/executions`),
 }
 
-// ─── Prices ───────────────────────────────────────────────────────────────────
-export const priceAPI = {
-  getCurrent: (symbols) => api.get(`/prices?symbols=${symbols.join(',')}`),
-  getHistory: (symbol)  => api.get(`/prices/history/${symbol}`),
-}
-
 // ─── Executions ───────────────────────────────────────────────────────────────
 export const executionAPI = {
   getAll: (params) => api.get('/executions', { params }),

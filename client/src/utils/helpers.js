@@ -41,20 +41,3 @@ export function getPortPos(node, kind, nodeWidth = 220, nodeHeight = 145) {
   if (kind === 'out') return { x: node.x + nodeWidth + 9, y: node.y + nodeHeight / 2 }
   return { x: node.x - 3, y: node.y + nodeHeight / 2 }
 }
-
-// ─── Mock price data ──────────────────────────────────────────────────────────
-export const MOCK_PRICES = {
-  SOL:  149.82,
-  BTC:  61340.50,
-  ETH:  3210.75,
-  BNB:  390.22,
-  DOGE: 0.1423,
-}
-
-export const PRICE_CHANGES = {
-  SOL:  -2.1,
-  BTC:  +1.3,
-  ETH:  -0.8,
-  BNB:  +0.5,
-  DOGE: +4.2,
-}

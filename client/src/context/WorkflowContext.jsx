@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
-import { timestamp, genId, MOCK_PRICES, PRICE_CHANGES } from '../utils/helpers'
+import { createContext, useContext, useState, useCallback } from 'react'
+import { timestamp, genId } from '../utils/helpers'
 
 const WorkflowContext = createContext(null)
 
@@ -45,44 +45,7 @@ export function WorkflowProvider({ children }) {
     },
   ])
 
-// ── Live prices (real data from CoinMarketCap via backend) ────────────────
-const [prices, setPrices]           = useState(MOCK_PRICES)   // show mock instantly
-const [priceChanges, setPriceChanges] = useState(PRICE_CHANGES)
-const [priceStatus, setPriceStatus] = useState('connecting')  // 'live' | 'stale' | 'error'
-
-useEffect(() => {
-  async function fetchPrices() {
-    try {
-      const res  = await fetch('/api/prices')
-      const json = await res.json()
-
-      if (!json.success) throw new Error(json.error)
-
-      // Shape into the { SOL: 149.82, BTC: 61340 } format the UI expects
-      const newPrices  = {}
-      const newChanges = {}
-      for (const [sym, data] of Object.entries(json.data)) {
-        newPrices[sym]  = data.price
-        newChanges[sym] = data.change24h
-      }
-
-      setPrices(newPrices)
-      setPriceChanges(newChanges)
-      setPriceStatus(json.stale ? 'stale' : 'live')
-    } catch (err) {
-      console.error('[Prices] fetch failed:', err.message)
-      setPriceStatus('error')
-      // Keep showing last known prices — don't wipe them
-    }
-  }
-
-  fetchPrices()                                    // run immediately on mount
-  const interval = setInterval(fetchPrices, 10000) // then every 10 seconds
-  return () => clearInterval(interval)
-}, [])
-
-
-// ── Workflow CRUD ─────────────────────────────────────────────────────────
+  // ── Workflow CRUD ─────────────────────────────────────────────────────────
   const saveWorkflow = useCallback((workflow) => {
     setWorkflows(prev => {
       const idx = prev.findIndex(w => w.id === workflow.id)
@@ -131,7 +94,6 @@ useEffect(() => {
     <WorkflowContext.Provider value={{
       logs, addLog, clearLogs,
       workflows, saveWorkflow, deleteWorkflow, toggleWorkflow,
-      prices, priceChanges,
       executions,
     }}>
       {children}
