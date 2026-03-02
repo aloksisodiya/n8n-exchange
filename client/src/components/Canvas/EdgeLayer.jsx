@@ -17,21 +17,19 @@ export default function EdgeLayer({ nodes, edges, connecting, mousePos, isActive
       }}
     >
       <defs>
-        {/* Arrow markers per trigger type color */}
-        {Object.entries(NODE_TYPES)
-          .filter(([, v]) => v.kind === 'trigger')
-          .map(([type, def]) => (
-            <marker
-              key={type}
-              id={`arrow-${type}`}
-              viewBox="0 0 10 10"
-              refX="9" refY="5"
-              markerWidth="6" markerHeight="6"
-              orient="auto"
-            >
-              <path d="M 0 0 L 10 5 L 0 10 z" fill={def.color} />
-            </marker>
-          ))}
+        {/* Arrow markers for all node type colors */}
+        {Object.entries(NODE_TYPES).map(([type, def]) => (
+          <marker
+            key={type}
+            id={`arrow-${type}`}
+            viewBox="0 0 10 10"
+            refX="9" refY="5"
+            markerWidth="6" markerHeight="6"
+            orient="auto"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={def.color} />
+          </marker>
+        ))}
         <marker id="arrow-connecting" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
           <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
         </marker>

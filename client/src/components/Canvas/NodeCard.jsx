@@ -5,6 +5,7 @@ export default function NodeCard({
   node,
   selected,
   onMouseDown,
+  onClick,
   onPortMouseDown,
   onPortMouseUp,
   isConnecting,
@@ -13,12 +14,13 @@ export default function NodeCard({
   const def = NODE_TYPES[node.type]
   if (!def) return null
 
-  const isTargetable = isConnecting && isConnecting.nodeId !== node.id && def.kind === 'action'
+  const isTargetable = isConnecting && isConnecting.nodeId !== node.id
   const isSource     = isConnecting && isConnecting.nodeId === node.id
 
   return (
     <div
       onMouseDown={(e) => onMouseDown(e, node.id)}
+      onClick={(e) => onClick(e, node.id)}
       style={{
         position:  'absolute',
         left:      node.x,
@@ -108,43 +110,40 @@ export default function NodeCard({
         </div>
       </div>
 
-      {/* ── Input port (left) — action nodes only ── */}
-      {def.kind === 'action' && (
-        <div
-          onMouseUp={(e) => { e.stopPropagation(); onPortMouseUp(node.id) }}
-          title="Drop connection here"
-          style={{
-            position:  'absolute', left: -10, top: '50%',
-            transform: 'translateY(-50%)',
-            width: 18, height: 18, borderRadius: '50%',
-            background: isTargetable ? def.color : 'var(--bg-elevated)',
-            border:     `2px solid ${isTargetable ? def.color : 'var(--border-light)'}`,
-            cursor:     'crosshair',
-            transition: 'all 0.15s',
-            zIndex:     20,
-            boxShadow:  isTargetable ? `0 0 10px ${def.color}` : 'none',
-          }}
-        />
-      )}
+      {/* ── Input port (left) — all nodes can receive connections ── */}
+      <div
+        onMouseDown={(e) => { e.stopPropagation(); e.preventDefault() }}
+        onMouseUp={(e) => { e.stopPropagation(); onPortMouseUp(node.id) }}
+        title="Drop connection here"
+        style={{
+          position:  'absolute', left: -10, top: '50%',
+          transform: 'translateY(-50%)',
+          width: 18, height: 18, borderRadius: '50%',
+          background: isTargetable ? def.color : 'var(--bg-elevated)',
+          border:     `2px solid ${isTargetable ? def.color : 'var(--border-light)'}`,
+          cursor:     isTargetable ? 'crosshair' : 'default',
+          transition: 'all 0.15s',
+          zIndex:     20,
+          boxShadow:  isTargetable ? `0 0 10px ${def.color}` : 'none',
+        }}
+      />
 
-      {/* ── Output port (right) — trigger nodes only ── */}
-      {def.kind === 'trigger' && (
-        <div
-          onMouseDown={(e) => { e.stopPropagation(); onPortMouseDown(e, node.id) }}
-          title="Drag to connect"
-          style={{
-            position:  'absolute', right: -10, top: '50%',
-            transform: 'translateY(-50%)',
-            width: 18, height: 18, borderRadius: '50%',
-            background: isSource ? def.color : 'var(--bg-elevated)',
-            border:     `2px solid ${isSource ? def.color : 'var(--border-light)'}`,
-            cursor:     'crosshair',
-            transition: 'all 0.15s',
-            zIndex:     20,
-            boxShadow:  isSource ? `0 0 10px ${def.color}` : 'none',
-          }}
-        />
-      )}
+      {/* ── Output port (right) — all nodes can create connections ── */}
+      <div
+        onMouseDown={(e) => { e.stopPropagation(); onPortMouseDown(e, node.id) }}
+        title="Drag to connect"
+        style={{
+          position:  'absolute', right: -10, top: '50%',
+          transform: 'translateY(-50%)',
+          width: 18, height: 18, borderRadius: '50%',
+          background: isSource ? def.color : 'var(--bg-elevated)',
+          border:     `2px solid ${isSource ? def.color : 'var(--border-light)'}`,
+          cursor:     'crosshair',
+          transition: 'all 0.15s',
+          zIndex:     20,
+          boxShadow:  isSource ? `0 0 10px ${def.color}` : 'none',
+        }}
+      />
     </div>
   )
 }

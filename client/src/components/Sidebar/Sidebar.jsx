@@ -98,11 +98,12 @@ export default function Sidebar() {
       }}>
         <div style={{ color: 'var(--accent-yellow)', fontSize: 10, fontWeight: 700, marginBottom: 8 }}>HOW TO USE</div>
         {[
-          '1. Drag a Trigger onto the canvas',
-          '2. Drag an Action onto the canvas',
-          '3. Click ● on Trigger (right)',
-          '4. Drop on Action ● (left)',
-          '5. Hit ACTIVATE to run',
+          '1. Drag nodes onto the canvas',
+          '2. Click a node to select it',
+          '3. Click right ● to start connection',
+          '4. Drop on another node\'s left ●',
+          '5. Press DELETE to remove nodes',
+          '6. Hit ACTIVATE to run',
         ].map((tip, i) => (
           <div key={i} style={{ color: 'var(--text-faint)', fontSize: 9, lineHeight: 1.8 }}>{tip}</div>
         ))}
