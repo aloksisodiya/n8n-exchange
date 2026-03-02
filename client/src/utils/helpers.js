@@ -36,10 +36,10 @@ export function clamp(val, min, max) {
 
 // ─── Get port position for a node ────────────────────────────────────────────
 // kind: 'out' = right side (trigger), 'in' = left side (action)
-export function getPortPos(node, kind, nodeWidth = 220, nodeHeight = 110) {
+export function getPortPos(node, kind, nodeWidth = 220, nodeHeight = 145) {
   if (!node) return { x: 0, y: 0 }
   if (kind === 'out') return { x: node.x + nodeWidth + 9, y: node.y + nodeHeight / 2 }
-  return { x: node.x - 9, y: node.y + nodeHeight / 2 }
+  return { x: node.x - 3, y: node.y + nodeHeight / 2 }
 }
 
 // ─── Mock price data ──────────────────────────────────────────────────────────

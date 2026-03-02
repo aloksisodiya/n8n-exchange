@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useWorkflow } from '../../context/WorkflowContext'
+import { useAuth } from '../../context/AuthContext'
 
 const NAV = [
   { to: '/',           label: 'Dashboard', icon: '⬡' },
@@ -16,6 +17,7 @@ const STATUS_CONFIG = {
 export default function Topbar({ workflowName, setWorkflowName, onActivate, isActive, nodeCount, edgeCount, isBuilder }) {
   const location = useLocation()
   const { prices, priceChanges, priceStatus } = useWorkflow()
+  const { user, logout } = useAuth()
   const statusCfg = STATUS_CONFIG[priceStatus || 'connecting']
 
   return (
@@ -106,6 +108,58 @@ export default function Topbar({ workflowName, setWorkflowName, onActivate, isAc
           </Link>
         </div>
       )}
+
+      {/* User menu */}
+      <div style={{ padding: '0 16px', borderLeft: '1px solid var(--border)', height: '100%', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-green))',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#fff',
+          }}>
+            {user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 500 }}>
+              {user?.displayName || 'User'}
+            </div>
+            <div style={{ color: 'var(--text-faint)', fontSize: 9 }}>
+              {user?.email}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={logout}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--border)',
+            color: 'var(--text-muted)',
+            padding: '5px 12px',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: 10,
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.borderColor = '#ef4444'
+            e.target.style.color = '#ef4444'
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.borderColor = 'var(--border)'
+            e.target.style.color = 'var(--text-muted)'
+          }}
+        >
+          Logout
+        </button>
+      </div>
     </header>
   )
 }
