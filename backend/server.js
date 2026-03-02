@@ -8,6 +8,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const pricesRouter = require('./routes/prices')
 
 // Verify Firebase initialization
 console.log("Firebase Admin initialized:", admin.apps.length ? "✓" : "✗");
@@ -26,6 +27,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api", router);
+app.use('/api/prices', pricesRouter)
 
 // Start server
 app.listen(PORT, () => {

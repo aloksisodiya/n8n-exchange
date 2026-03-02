@@ -158,7 +158,6 @@ export default function Dashboard() {
   const { workflows, toggleWorkflow, deleteWorkflow, prices, priceChanges } = useWorkflow()
 
   const activeCount    = workflows.filter(w => w.isActive).length
-  const totalExec      = workflows.reduce((s, w) => s + (w.executions || 0), 0)
 
   return (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -180,40 +179,10 @@ export default function Dashboard() {
         <div style={{ display: 'flex', gap: 16 }}>
           <StatCard label="Total Workflows" value={workflows.length} color="var(--accent-blue)"   icon="⬡" />
           <StatCard label="Active Now"       value={activeCount}       color="var(--accent-green)"  icon="▶" />
-          <StatCard label="Total Executions" value={totalExec}         color="var(--accent-yellow)" icon="◆" />
           <StatCard label="Assets Tracked"   value={Object.keys(prices).length} color="var(--accent-purple)" icon="◎" />
         </div>
 
-        {/* Live prices strip */}
-        <div style={{
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          padding: '14px 20px',
-          display: 'flex',
-          gap: 32,
-          alignItems: 'center',
-          overflowX: 'auto',
-        }}>
-          <span style={{ color: 'var(--text-faint)', fontSize: 10, fontWeight: 700, letterSpacing: 1, flexShrink: 0 }}>LIVE PRICES</span>
-          {Object.entries(prices).map(([sym, price]) => {
-            const chg = priceChanges[sym] || 0
-            const up  = chg >= 0
-            return (
-              <div key={sym} style={{ flexShrink: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                  <span style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700 }}>{sym}</span>
-                  <span style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 600 }}>
-                    ${sym === 'DOGE' ? price.toFixed(4) : price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                  <span style={{ color: up ? 'var(--accent-green)' : 'var(--accent-red)', fontSize: 10 }}>
-                    {up ? '▲' : '▼'} {Math.abs(chg).toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+      
 
         {/* Workflows grid */}
         <div>
