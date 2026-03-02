@@ -37,6 +37,8 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     console.error("Registration error:", error.message);
+    console.error("Error code:", error.code);
+    console.error("Full error:", error);
 
     if (error.code === "auth/email-already-exists") {
       return res.status(409).json({

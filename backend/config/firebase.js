@@ -18,12 +18,13 @@ const serviceAccount = JSON.parse(
   ),
 );
 
-// Initialize Firebase Admin
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  projectId: serviceAccount.project_id,
-});
+// Initialize Firebase Admin (only if not already initialized)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
 
-// Export admin instance and auth
+// Export auth as a function to get the current auth instance
 export const adminAuth = admin.auth();
 export default admin;

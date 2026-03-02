@@ -2,11 +2,15 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import router from "./routes/routes.js";
+import admin from "./config/firebase.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Verify Firebase initialization
+console.log("Firebase Admin initialized:", admin.apps.length ? "✓" : "✗");
 
 // Middleware
 app.use(cors());
