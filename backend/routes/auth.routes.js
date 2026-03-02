@@ -3,7 +3,7 @@ import {
   register,
   login,
   logout,
-  forgotPassword,
+  googleSignIn,
 } from "../controllers/auth.controllers.js";
 
 const auth_route = express.Router();
@@ -12,6 +12,6 @@ const auth_route = express.Router();
 auth_route.post("/register", register);
 auth_route.post("/login", login);
 auth_route.post("/logout", logout);
-auth_route.post("/forgot-password", forgotPassword);
+auth_route.post("/google-signin", googleSignIn);
 
 export default auth_route;

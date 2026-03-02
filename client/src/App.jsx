@@ -4,7 +4,6 @@ import { WorkflowProvider } from './context/WorkflowContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import ForgotPassword from './pages/ForgotPassword'
 import Dashboard        from './pages/Dashboard'
 import WorkflowBuilder  from './pages/WorkflowBuilder'
 import ExecutionHistory from './pages/ExecutionHistory'
@@ -16,9 +15,8 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             {/* Public routes */}
-            <Route path="/login"           element={<Login />} />
-            <Route path="/register"        element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/login"    element={<Login />} />
+            <Route path="/register" element={<Register />} />
             
             {/* Protected routes */}
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

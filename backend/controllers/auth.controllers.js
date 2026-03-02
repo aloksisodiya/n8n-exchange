@@ -1,6 +1,82 @@
 import { adminAuth } from "../config/firebase.js";
 
 /**
+ * Google Sign-In (verify ID token and create custom token)
+ */
+export const googleSignIn = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({
+        error: "Bad request",
+        message: "ID token is required",
+      });
+    }
+
+    // Verify the Google ID token
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    const uid = decodedToken.uid;
+
+    // Get or create user
+    let userRecord;
+    try {
+      userRecord = await adminAuth.getUser(uid);
+    } catch (error) {
+      if (error.code === "auth/user-not-found") {
+        // User doesn't exist, create one
+        userRecord = await adminAuth.createUser({
+          uid: uid,
+          email: decodedToken.email,
+          displayName: decodedToken.name,
+          photoURL: decodedToken.picture,
+          emailVerified: decodedToken.email_verified,
+        });
+      } else {
+        throw error;
+      }
+    }
+
+    // Generate custom token for the backend
+    const customToken = await adminAuth.createCustomToken(userRecord.uid);
+
+    res.json({
+      success: true,
+      message: "Google sign-in successful",
+      user: {
+        uid: userRecord.uid,
+        email: userRecord.email,
+        displayName: userRecord.displayName,
+        photoURL: userRecord.photoURL,
+        emailVerified: userRecord.emailVerified,
+      },
+      token: customToken,
+    });
+  } catch (error) {
+    console.error("Google sign-in error:", error.message);
+
+    if (error.code === "auth/id-token-expired") {
+      return res.status(401).json({
+        error: "Token expired",
+        message: "The ID token has expired",
+      });
+    }
+
+    if (error.code === "auth/invalid-id-token") {
+      return res.status(401).json({
+        error: "Invalid token",
+        message: "The ID token is invalid",
+      });
+    }
+
+    res.status(500).json({
+      error: "Server error",
+      message: "Failed to authenticate with Google",
+    });
+  }
+};
+
+/**
  * Register a new user
  */
 export const register = async (req, res) => {
@@ -129,51 +205,6 @@ export const logout = async (req, res) => {
     res.status(500).json({
       error: "Server error",
       message: "Failed to logout",
-    });
-  }
-};
-
-/**
- * Forgot password (send password reset email)
- */
-export const forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        error: "Bad request",
-        message: "Email is required",
-      });
-    }
-
-    // Verify user exists
-    await adminAuth.getUserByEmail(email);
-
-    // Generate password reset link
-    const resetLink = await adminAuth.generatePasswordResetLink(email);
-
-    // In production, send this link via email service
-    // For now, return it in the response
-    res.json({
-      success: true,
-      message: "Password reset link generated",
-      resetLink, // In production, send via email instead of returning
-    });
-  } catch (error) {
-    console.error("Forgot password error:", error.message);
-
-    if (error.code === "auth/user-not-found") {
-      // Don't reveal if user exists or not (security best practice)
-      return res.json({
-        success: true,
-        message: "If the email exists, a reset link has been sent",
-      });
-    }
-
-    res.status(500).json({
-      error: "Server error",
-      message: "Failed to process password reset",
     });
   }
 };
