@@ -1,210 +1,100 @@
 import { adminAuth } from "../config/firebase.js";
 
 /**
- * Google Sign-In (verify ID token and create custom token)
+ * Authentication middleware
+ * Verifies Firebase ID token and attaches user to request
  */
-export const googleSignIn = async (req, res) => {
+export const authMiddleware = async (req, res, next) => {
   try {
-    const { idToken } = req.body;
+    const authHeader = req.headers.authorization;
 
-    if (!idToken) {
-      return res.status(400).json({
-        error: "Bad request",
-        message: "ID token is required",
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized - No token provided',
       });
     }
 
-    // Verify the Google ID token
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
-    const uid = decodedToken.uid;
+    const token = authHeader.split('Bearer ')[1];
 
-    // Get or create user
-    let userRecord;
-    try {
-      userRecord = await adminAuth.getUser(uid);
-    } catch (error) {
-      if (error.code === "auth/user-not-found") {
-        // User doesn't exist, create one
-        userRecord = await adminAuth.createUser({
-          uid: uid,
-          email: decodedToken.email,
-          displayName: decodedToken.name,
-          photoURL: decodedToken.picture,
-          emailVerified: decodedToken.email_verified,
-        });
-      } else {
-        throw error;
-      }
-    }
+    // Verify Firebase ID token
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    
+    // Attach user info to request
+    req.user = decodedToken;
 
-    // Generate custom token for the backend
-    const customToken = await adminAuth.createCustomToken(userRecord.uid);
-
-    res.json({
-      success: true,
-      message: "Google sign-in successful",
-      user: {
-        uid: userRecord.uid,
-        email: userRecord.email,
-        displayName: userRecord.displayName,
-        photoURL: userRecord.photoURL,
-        emailVerified: userRecord.emailVerified,
-      },
-      token: customToken,
-    });
+    next();
   } catch (error) {
-    console.error("Google sign-in error:", error.message);
+    console.error('Auth middleware error:', error.message);
 
-    if (error.code === "auth/id-token-expired") {
+    if (error.code === 'auth/id-token-expired') {
       return res.status(401).json({
-        error: "Token expired",
-        message: "The ID token has expired",
+        success: false,
+        message: 'Token expired',
       });
     }
 
-    if (error.code === "auth/invalid-id-token") {
+    if (error.code === 'auth/argument-error') {
       return res.status(401).json({
-        error: "Invalid token",
-        message: "The ID token is invalid",
+        success: false,
+        message: 'Invalid token',
       });
     }
 
-    res.status(500).json({
-      error: "Server error",
-      message: "Failed to authenticate with Google",
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication failed',
     });
   }
 };
 
 /**
- * Register a new user
+ * TODO: Implement the following authentication controllers:
+ * 
+ * 1. register(req, res)
+ *    - POST /api/auth/register
+ *    - Body: { email, password, displayName }
+ *    - Create user in Firebase Auth
+ *    - Create User in MongoDB with initial wallet ($10,000)
+ *    - Create empty Portfolio
+ *    - Return custom token
+ * 
+ * 2. login(req, res)
+ *    - POST /api/auth/login
+ *    - Body: { email }
+ *    - Get user by email from Firebase
+ *    - Generate custom token
+ *    - Update lastLogin in MongoDB
+ *    - Return user data and token
+ * 
+ * 3. googleSignIn(req, res)
+ *    - POST /api/auth/google-signin
+ *    - Body: { idToken }
+ *    - Verify Google ID token
+ *    - Create user if doesn't exist (with wallet + portfolio)
+ *    - Update lastLogin if exists
+ *    - Return custom token
+ * 
+ * 4. logout(req, res)
+ *    - POST /api/auth/logout
+ *    - Body: { uid }
+ *    - Revoke all refresh tokens for user
+ *    - Return success message
  */
+
+// Export placeholder functions (you need to implement these)
 export const register = async (req, res) => {
-  try {
-    const { email, password, displayName } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        error: "Bad request",
-        message: "Email and password are required",
-      });
-    }
-
-    // Create user in Firebase
-    const userRecord = await adminAuth.createUser({
-      email,
-      password,
-      displayName: displayName || null,
-      emailVerified: false,
-    });
-
-    // Generate custom token for immediate login
-    const customToken = await adminAuth.createCustomToken(userRecord.uid);
-
-    res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      user: {
-        uid: userRecord.uid,
-        email: userRecord.email,
-        displayName: userRecord.displayName,
-      },
-      token: customToken,
-    });
-  } catch (error) {
-    console.error("Registration error:", error.message);
-    console.error("Error code:", error.code);
-    console.error("Full error:", error);
-
-    if (error.code === "auth/email-already-exists") {
-      return res.status(409).json({
-        error: "Email already exists",
-        message: "This email is already registered",
-      });
-    }
-
-    res.status(500).json({
-      error: "Server error",
-      message: "Failed to register user",
-    });
-  }
+  res.status(501).json({ error: 'Not implemented', message: 'register controller needs to be implemented' });
 };
 
-/**
- * Login user (creates custom token)
- */
 export const login = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        error: "Bad request",
-        message: "Email is required",
-      });
-    }
-
-    // Get user by email
-    const userRecord = await adminAuth.getUserByEmail(email);
-
-    // Generate custom token
-    const customToken = await adminAuth.createCustomToken(userRecord.uid);
-
-    res.json({
-      success: true,
-      message: "Login successful",
-      user: {
-        uid: userRecord.uid,
-        email: userRecord.email,
-        displayName: userRecord.displayName,
-        emailVerified: userRecord.emailVerified,
-      },
-      token: customToken,
-    });
-  } catch (error) {
-    console.error("Login error:", error.message);
-
-    if (error.code === "auth/user-not-found") {
-      return res.status(404).json({
-        error: "User not found",
-        message: "No user found with this email",
-      });
-    }
-
-    res.status(500).json({
-      error: "Server error",
-      message: "Failed to login",
-    });
-  }
+  res.status(501).json({ error: 'Not implemented', message: 'login controller needs to be implemented' });
 };
 
-/**
- * Logout user (revoke refresh tokens)
- */
+export const googleSignIn = async (req, res) => {
+  res.status(501).json({ error: 'Not implemented', message: 'googleSignIn controller needs to be implemented' });
+};
+
 export const logout = async (req, res) => {
-  try {
-    const { uid } = req.body;
-
-    if (!uid) {
-      return res.status(400).json({
-        error: "Bad request",
-        message: "User ID is required",
-      });
-    }
-
-    // Revoke all refresh tokens for the user
-    await adminAuth.revokeRefreshTokens(uid);
-
-    res.json({
-      success: true,
-      message: "Logged out successfully",
-    });
-  } catch (error) {
-    console.error("Logout error:", error.message);
-
-    res.status(500).json({
-      error: "Server error",
-      message: "Failed to logout",
-    });
-  }
+  res.status(501).json({ error: 'Not implemented', message: 'logout controller needs to be implemented' });
 };
