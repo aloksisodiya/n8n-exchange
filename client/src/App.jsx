@@ -4,6 +4,7 @@ import { WorkflowProvider } from './context/WorkflowContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Profile from './pages/Profile'
 import Dashboard        from './pages/Dashboard'
 import WorkflowBuilder  from './pages/WorkflowBuilder'
 import ExecutionHistory from './pages/ExecutionHistory'
@@ -20,6 +21,7 @@ export default function App() {
             
             {/* Protected routes */}
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/builder/:id" element={<ProtectedRoute><WorkflowBuilder /></ProtectedRoute>} />
             <Route path="/executions" element={<ProtectedRoute><ExecutionHistory /></ProtectedRoute>} />
             

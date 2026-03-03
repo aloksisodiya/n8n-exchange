@@ -2,9 +2,16 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const NAV = [
+<<<<<<< HEAD
   { to: "/", label: "Dashboard", icon: "⬡" },
   { to: "/executions", label: "History", icon: "◎" },
 ];
+=======
+  { to: '/',           label: 'Dashboard', icon: '⬡' },
+  { to: '/executions', label: 'History',   icon: '◎' },
+  { to: '/profile',    label: 'Profile',   icon: '👤' },
+]
+>>>>>>> d24d904 (frotned updated wallet added)
 
 export default function Topbar({
   workflowName,
@@ -183,6 +190,28 @@ export default function Topbar({
       {/* Spacer */}
       <div style={{ flex: 1 }} />
 
+      {/* Wallet Balance */}
+      <div style={{ padding: '0 16px', borderLeft: '1px solid var(--border)', height: '100%', display: 'flex', alignItems: 'center' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '7px 18px',
+          background: 'linear-gradient(135deg, #f59e0b22, #ef444422)',
+          border: '1px solid var(--accent-yellow)',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: 1,
+          fontFamily: 'var(--font-mono)',
+        }}>
+          <span>💰</span>
+          <span style={{ color: 'var(--accent-yellow)' }}>
+            $10,000.00
+          </span>
+        </div>
+      </div>
+
       {isBuilder && (
         <div
           style={{
@@ -246,6 +275,7 @@ export default function Topbar({
       )}
 
       {/* User menu */}
+<<<<<<< HEAD
       <div
         style={{
           padding: "0 16px",
@@ -275,6 +305,24 @@ export default function Topbar({
             {user?.displayName?.charAt(0).toUpperCase() ||
               user?.email?.charAt(0).toUpperCase() ||
               "U"}
+=======
+      <div style={{ padding: '0 16px', borderLeft: '1px solid var(--border)', height: '100%', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Link to="/profile" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-green))',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#fff',
+            cursor: 'pointer',
+          }}>
+            {user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+>>>>>>> d24d904 (frotned updated wallet added)
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             <div
@@ -290,7 +338,7 @@ export default function Topbar({
               {user?.email}
             </div>
           </div>
-        </div>
+        </Link>
         <button
           onClick={logout}
           style={{

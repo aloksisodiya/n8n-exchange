@@ -45,6 +45,7 @@ export function WorkflowProvider({ children }) {
     ]);
   }, []);
 
+<<<<<<< HEAD
   // ── All saved workflows (mocked locally until backend ready) ──────────────
   const [workflows, setWorkflows] = useState([
     {
@@ -68,6 +69,10 @@ export function WorkflowProvider({ children }) {
       lastRun: new Date(Date.now() - 600000).toISOString(),
     },
   ]);
+=======
+  // ── All saved workflows (empty by default - will be loaded from backend) ──
+  const [workflows, setWorkflows] = useState([])
+>>>>>>> d24d904 (frotned updated wallet added)
 
   // ── Workflow CRUD ─────────────────────────────────────────────────────────
   const saveWorkflow = useCallback(
@@ -116,6 +121,7 @@ export function WorkflowProvider({ children }) {
     [addLog],
   );
 
+<<<<<<< HEAD
   // ── Mock execution history ────────────────────────────────────────────────
   const [executions] = useState([
     {
@@ -174,6 +180,10 @@ export function WorkflowProvider({ children }) {
       timestamp: new Date(Date.now() - 37200000).toISOString(),
     },
   ]);
+=======
+  // ── Execution history (empty by default - will be loaded from backend) ────
+  const [executions] = useState([])
+>>>>>>> d24d904 (frotned updated wallet added)
 
   return (
     <WorkflowContext.Provider

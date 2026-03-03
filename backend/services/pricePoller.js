@@ -147,7 +147,8 @@ class PricePollingService extends EventEmitter {
       // Emit price update event
       this.emit("pricesUpdated", priceMap);
 
-      console.log(`📈 Prices updated: ${Object.keys(priceMap).length} symbols`);
+      // Silently update prices (uncomment line below for debugging)
+      // console.log(`📈 Prices updated: ${Object.keys(priceMap).length} symbols`);
     } catch (error) {
       console.error("❌ Failed to fetch prices:", error.message);
       await Log.error("price", "Failed to fetch prices from CoinMarketCap", {
@@ -206,9 +207,8 @@ class PricePollingService extends EventEmitter {
       // Emit price update event
       this.emit("pricesUpdated", priceMap);
 
-      console.log(
-        `📈 Mock prices updated: ${Object.keys(priceMap).length} symbols`,
-      );
+      // Silently update prices (uncomment line below for debugging)
+      // console.log(`📈 Mock prices updated: ${Object.keys(priceMap).length} symbols`);
     } catch (error) {
       console.error("❌ Failed to fetch mock prices:", error);
     }
@@ -249,9 +249,10 @@ class PricePollingService extends EventEmitter {
         }
       }
 
-      if (portfolios.length > 0) {
-        console.log(`💼 Updated ${portfolios.length} portfolios`);
-      }
+      // Silently update portfolios (uncomment line below for debugging)
+      // if (portfolios.length > 0) {
+      //   console.log(`💼 Updated ${portfolios.length} portfolios`);
+      // }
     } catch (error) {
       console.error("❌ Failed to update portfolios:", error);
     }

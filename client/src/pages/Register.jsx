@@ -39,7 +39,12 @@ export default function Register() {
     setLoading(false);
 
     if (result.success) {
+<<<<<<< HEAD
       navigate("/", { replace: true });
+=======
+      // First time user - redirect to profile setup
+      navigate('/profile', { replace: true })
+>>>>>>> d24d904 (frotned updated wallet added)
     } else {
       setError(result.message);
     }
@@ -57,7 +62,12 @@ export default function Register() {
     setLoading(false);
 
     if (result.success) {
+<<<<<<< HEAD
       navigate("/", { replace: true });
+=======
+      // First time user via Google - redirect to profile
+      navigate('/profile', { replace: true })
+>>>>>>> d24d904 (frotned updated wallet added)
     } else {
       setError(result.message);
     }
