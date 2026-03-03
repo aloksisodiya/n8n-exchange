@@ -45,34 +45,8 @@ export function WorkflowProvider({ children }) {
     ]);
   }, []);
 
-<<<<<<< HEAD
-  // ── All saved workflows (mocked locally until backend ready) ──────────────
-  const [workflows, setWorkflows] = useState([
-    {
-      id: "wf-demo-1",
-      name: "DCA SOL Bot",
-      isActive: false,
-      nodes: [],
-      edges: [],
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-      executions: 12,
-      lastRun: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      id: "wf-demo-2",
-      name: "SOL Stop Loss Guard",
-      isActive: true,
-      nodes: [],
-      edges: [],
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      executions: 5,
-      lastRun: new Date(Date.now() - 600000).toISOString(),
-    },
-  ]);
-=======
   // ── All saved workflows (empty by default - will be loaded from backend) ──
   const [workflows, setWorkflows] = useState([])
->>>>>>> d24d904 (frotned updated wallet added)
 
   // ── Workflow CRUD ─────────────────────────────────────────────────────────
   const saveWorkflow = useCallback(
@@ -121,7 +95,6 @@ export function WorkflowProvider({ children }) {
     [addLog],
   );
 
-<<<<<<< HEAD
   // ── Mock execution history ────────────────────────────────────────────────
   const [executions] = useState([
     {
@@ -180,10 +153,7 @@ export function WorkflowProvider({ children }) {
       timestamp: new Date(Date.now() - 37200000).toISOString(),
     },
   ]);
-=======
   // ── Execution history (empty by default - will be loaded from backend) ────
-  const [executions] = useState([])
->>>>>>> d24d904 (frotned updated wallet added)
 
   return (
     <WorkflowContext.Provider

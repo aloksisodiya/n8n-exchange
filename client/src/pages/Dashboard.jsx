@@ -1,17 +1,9 @@
-<<<<<<< HEAD
-import { Link } from "react-router-dom";
-import { useWorkflow } from "../context/WorkflowContext";
-import Topbar from "../components/Topbar/Topbar";
-import { formatDate } from "../utils/helpers";
-import { NODE_TYPES } from "../constants/nodeTypes";
-=======
 import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useWorkflow } from '../context/WorkflowContext'
 import Topbar from '../components/Topbar/Topbar'
 import { formatDate, genId } from '../utils/helpers'
 import { NODE_TYPES, getDefaultConfig } from '../constants/nodeTypes'
->>>>>>> d24d904 (frotned updated wallet added)
 
 function StatCard({ label, value, color, icon }) {
   return (
@@ -49,13 +41,8 @@ function StatCard({ label, value, color, icon }) {
   );
 }
 
-<<<<<<< HEAD
-function WorkflowCard({ workflow, onToggle, onDelete }) {
-  const isActive = workflow.isActive;
-=======
 function WorkflowCard({ workflow, onToggle, onDeleteClick }) {
   const isActive = workflow.isActive
->>>>>>> d24d904 (frotned updated wallet added)
 
   return (
     <div
@@ -267,12 +254,6 @@ function WorkflowCard({ workflow, onToggle, onDeleteClick }) {
   );
 }
 
-<<<<<<< HEAD
-export default function Dashboard() {
-  const { workflows, toggleWorkflow, deleteWorkflow } = useWorkflow();
-
-  const activeCount = workflows.filter((w) => w.isActive).length;
-=======
 // Quick start workflow templates
 const TEMPLATES = {
   dcaBot: {
@@ -447,7 +428,6 @@ export default function Dashboard() {
     saveWorkflow(newWorkflow)
     navigate(`/builder/${workflowId}`)
   }
->>>>>>> d24d904 (frotned updated wallet added)
 
   return (
     <div
@@ -596,86 +576,6 @@ export default function Dashboard() {
             }}
           >
             {[
-<<<<<<< HEAD
-              {
-                name: "DCA Bot",
-                desc: "Timer → Spot Buy",
-                icon: "⏱",
-                color: "#f59e0b",
-              },
-              {
-                name: "Stop Loss Guard",
-                desc: "Price Below → Spot Sell",
-                icon: "🛑",
-                color: "#f97316",
-              },
-              {
-                name: "Take Profit",
-                desc: "Price Above → Spot Sell",
-                icon: "🎯",
-                color: "#06b6d4",
-              },
-              {
-                name: "Leverage Long",
-                desc: "Price Below → Long",
-                icon: "⬆",
-                color: "#22c55e",
-              },
-              {
-                name: "Hedge Strategy",
-                desc: "Price Below → Long + Short",
-                icon: "◎",
-                color: "#818cf8",
-              },
-              {
-                name: "Alert Bot",
-                desc: "Timer → Telegram",
-                icon: "📨",
-                color: "#38bdf8",
-              },
-            ].map((template) => (
-              <Link to="/builder/new" key={template.name}>
-                <div
-                  style={{
-                    background: "var(--bg-elevated)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "var(--radius-sm)",
-                    padding: "10px 14px",
-                    cursor: "pointer",
-                    transition: "border-color 0.15s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.borderColor = template.color)
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.borderColor = "var(--border)")
-                  }
-                >
-                  <div style={{ fontSize: 16, marginBottom: 4 }}>
-                    {template.icon}
-                  </div>
-                  <div
-                    style={{
-                      color: "var(--text-primary)",
-                      fontSize: 11,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {template.name}
-                  </div>
-                  <div
-                    style={{
-                      color: "var(--text-primary)",
-                      fontSize: 10,
-                      marginTop: 2,
-                      opacity: 0.7,
-                    }}
-                  >
-                    {template.desc}
-                  </div>
-                </div>
-              </Link>
-=======
               { key: 'dcaBot',         name: 'DCA Bot',          desc: 'Timer → Spot Buy',          icon: '⏱', color: '#f59e0b' },
               { key: 'stopLoss',       name: 'Stop Loss Guard',  desc: 'Price Below → Spot Sell',   icon: '🛑', color: '#f97316' },
               { key: 'takeProfit',     name: 'Take Profit',      desc: 'Price Above → Spot Sell',   icon: '🎯', color: '#06b6d4' },
@@ -701,7 +601,6 @@ export default function Dashboard() {
                 <div style={{ color: 'var(--text-primary)', fontSize: 11, fontWeight: 600 }}>{template.name}</div>
                 <div style={{ color: 'var(--text-faint)', fontSize: 10, marginTop: 2 }}>{template.desc}</div>
               </div>
->>>>>>> d24d904 (frotned updated wallet added)
             ))}
           </div>
         </div>

@@ -2,16 +2,10 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const NAV = [
-<<<<<<< HEAD
-  { to: "/", label: "Dashboard", icon: "⬡" },
-  { to: "/executions", label: "History", icon: "◎" },
-];
-=======
   { to: '/',           label: 'Dashboard', icon: '⬡' },
   { to: '/executions', label: 'History',   icon: '◎' },
   { to: '/profile',    label: 'Profile',   icon: '👤' },
 ]
->>>>>>> d24d904 (frotned updated wallet added)
 
 export default function Topbar({
   workflowName,
@@ -275,37 +269,6 @@ export default function Topbar({
       )}
 
       {/* User menu */}
-<<<<<<< HEAD
-      <div
-        style={{
-          padding: "0 16px",
-          borderLeft: "1px solid var(--border)",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              background:
-                "linear-gradient(135deg, var(--accent-blue), var(--accent-green))",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12,
-              fontWeight: 700,
-              color: "#fff",
-            }}
-          >
-            {user?.displayName?.charAt(0).toUpperCase() ||
-              user?.email?.charAt(0).toUpperCase() ||
-              "U"}
-=======
       <div style={{ padding: '0 16px', borderLeft: '1px solid var(--border)', height: '100%', display: 'flex', alignItems: 'center', gap: 10 }}>
         <Link to="/profile" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
@@ -322,7 +285,6 @@ export default function Topbar({
             cursor: 'pointer',
           }}>
             {user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
->>>>>>> d24d904 (frotned updated wallet added)
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             <div
