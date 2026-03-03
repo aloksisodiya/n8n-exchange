@@ -1,13 +1,19 @@
-import axios from 'axios';
-import EventEmitter from 'events';
-import { MarketPrice, PriceHistory, Portfolio, SystemConfig, Log } from '../models/index.js';
+import axios from "axios";
+import EventEmitter from "events";
+import {
+  MarketPrice,
+  PriceHistory,
+  Portfolio,
+  SystemConfig,
+  Log,
+} from "../models/index.js";
 
 class PricePollingService extends EventEmitter {
   constructor() {
     super();
     this.pollingInterval = null;
     this.isPolling = false;
-    this.supportedSymbols = ['BTC', 'ETH', 'BNB', 'SOL', 'DOGE'];
+    this.supportedSymbols = ["BTC", "ETH", "BNB", "SOL", "DOGE"];
     this.cmcApiKey = process.env.CMC_API_KEY;
     this.pollIntervalMs = 10000; // 10 seconds
   }
@@ -16,14 +22,17 @@ class PricePollingService extends EventEmitter {
   async initialize() {
     try {
       // Load configuration
-      const pollInterval = await SystemConfig.get('PRICE_POLL_INTERVAL', 10000);
-      const symbols = await SystemConfig.get('SUPPORTED_SYMBOLS', this.supportedSymbols);
+      const pollInterval = await SystemConfig.get("PRICE_POLL_INTERVAL", 10000);
+      const symbols = await SystemConfig.get(
+        "SUPPORTED_SYMBOLS",
+        this.supportedSymbols,
+      );
 
       this.pollIntervalMs = pollInterval;
       this.supportedSymbols = symbols;
 
       console.log(`📊 Price polling service initialized`);
-      console.log(`   Supported symbols: ${this.supportedSymbols.join(', ')}`);
+      console.log(`   Supported symbols: ${this.supportedSymbols.join(", ")}`);
       console.log(`   Poll interval: ${this.pollIntervalMs}ms`);
 
       // Do an initial fetch
@@ -32,12 +41,15 @@ class PricePollingService extends EventEmitter {
       // Start polling
       this.startPolling();
 
-      await Log.info('price', 'Price polling service initialized', {
-        metadata: { symbols: this.supportedSymbols, interval: this.pollIntervalMs },
+      await Log.info("price", "Price polling service initialized", {
+        metadata: {
+          symbols: this.supportedSymbols,
+          interval: this.pollIntervalMs,
+        },
       });
     } catch (error) {
-      console.error('❌ Failed to initialize price polling service:', error);
-      await Log.error('price', 'Failed to initialize price polling service', {
+      console.error("❌ Failed to initialize price polling service:", error);
+      await Log.error("price", "Failed to initialize price polling service", {
         metadata: { error: error.message },
         stack: error.stack,
       });
@@ -47,7 +59,7 @@ class PricePollingService extends EventEmitter {
   // Start polling prices
   startPolling() {
     if (this.isPolling) {
-      console.warn('⚠️  Price polling is already running');
+      console.warn("⚠️  Price polling is already running");
       return;
     }
 
@@ -56,7 +68,7 @@ class PricePollingService extends EventEmitter {
       await this.fetchPrices();
     }, this.pollIntervalMs);
 
-    console.log('✅ Price polling started');
+    console.log("✅ Price polling started");
   }
 
   // Stop polling prices
@@ -65,7 +77,7 @@ class PricePollingService extends EventEmitter {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
       this.isPolling = false;
-      console.log('🛑 Price polling stopped');
+      console.log("🛑 Price polling stopped");
     }
   }
 
@@ -79,15 +91,18 @@ class PricePollingService extends EventEmitter {
       }
 
       // Fetch from CoinMarketCap API
-      const response = await axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest', {
-        headers: {
-          'X-CMC_PRO_API_KEY': this.cmcApiKey,
+      const response = await axios.get(
+        "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest",
+        {
+          headers: {
+            "X-CMC_PRO_API_KEY": this.cmcApiKey,
+          },
+          params: {
+            symbol: this.supportedSymbols.join(","),
+            convert: "USD",
+          },
         },
-        params: {
-          symbol: this.supportedSymbols.join(','),
-          convert: 'USD',
-        },
-      });
+      );
 
       const data = response.data.data;
       const priceMap = {};
@@ -117,7 +132,7 @@ class PricePollingService extends EventEmitter {
         await MarketPrice.findOneAndUpdate(
           { symbol: coinData.symbol },
           priceData,
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: "after" },
         );
 
         priceMap[symbol] = quote.price;
@@ -130,12 +145,12 @@ class PricePollingService extends EventEmitter {
       await this.updateAllPortfolios(priceMap);
 
       // Emit price update event
-      this.emit('pricesUpdated', priceMap);
+      this.emit("pricesUpdated", priceMap);
 
       console.log(`📈 Prices updated: ${Object.keys(priceMap).length} symbols`);
     } catch (error) {
-      console.error('❌ Failed to fetch prices:', error.message);
-      await Log.error('price', 'Failed to fetch prices from CoinMarketCap', {
+      console.error("❌ Failed to fetch prices:", error.message);
+      await Log.error("price", "Failed to fetch prices from CoinMarketCap", {
         metadata: { error: error.message },
       });
     }
@@ -171,14 +186,13 @@ class PricePollingService extends EventEmitter {
           maxSupply: 21000000000,
           cmcRank: this.supportedSymbols.indexOf(symbol) + 1,
           lastUpdated: new Date(),
-          source: 'mock',
+          source: "mock",
         };
 
-        await MarketPrice.findOneAndUpdate(
-          { symbol },
-          priceData,
-          { upsert: true, new: true }
-        );
+        await MarketPrice.findOneAndUpdate({ symbol }, priceData, {
+          upsert: true,
+          returnDocument: "after",
+        });
 
         priceMap[symbol] = price;
 
@@ -190,11 +204,13 @@ class PricePollingService extends EventEmitter {
       await this.updateAllPortfolios(priceMap);
 
       // Emit price update event
-      this.emit('pricesUpdated', priceMap);
+      this.emit("pricesUpdated", priceMap);
 
-      console.log(`📈 Mock prices updated: ${Object.keys(priceMap).length} symbols`);
+      console.log(
+        `📈 Mock prices updated: ${Object.keys(priceMap).length} symbols`,
+      );
     } catch (error) {
-      console.error('❌ Failed to fetch mock prices:', error);
+      console.error("❌ Failed to fetch mock prices:", error);
     }
   }
 
@@ -202,12 +218,12 @@ class PricePollingService extends EventEmitter {
   async addToPriceHistory(symbol, price, volume) {
     try {
       // Add to 1-minute interval
-      let history = await PriceHistory.findOne({ symbol, interval: '1m' });
-      
+      let history = await PriceHistory.findOne({ symbol, interval: "1m" });
+
       if (!history) {
         history = new PriceHistory({
           symbol,
-          interval: '1m',
+          interval: "1m",
           dataPoints: [],
         });
       }
@@ -222,10 +238,12 @@ class PricePollingService extends EventEmitter {
   async updateAllPortfolios(priceMap) {
     try {
       const portfolios = await Portfolio.find({});
-      
+
       for (const portfolio of portfolios) {
-        const hasRelevantHoldings = portfolio.holdings.some(h => priceMap[h.symbol]);
-        
+        const hasRelevantHoldings = portfolio.holdings.some(
+          (h) => priceMap[h.symbol],
+        );
+
         if (hasRelevantHoldings) {
           await portfolio.updatePrices(priceMap);
         }
@@ -235,13 +253,15 @@ class PricePollingService extends EventEmitter {
         console.log(`💼 Updated ${portfolios.length} portfolios`);
       }
     } catch (error) {
-      console.error('❌ Failed to update portfolios:', error);
+      console.error("❌ Failed to update portfolios:", error);
     }
   }
 
   // Get current price for a symbol
   async getCurrentPrice(symbol) {
-    const marketPrice = await MarketPrice.findOne({ symbol: symbol.toUpperCase() });
+    const marketPrice = await MarketPrice.findOne({
+      symbol: symbol.toUpperCase(),
+    });
     return marketPrice ? marketPrice.price : null;
   }
 
@@ -251,28 +271,31 @@ class PricePollingService extends EventEmitter {
   }
 
   // Get price history for a symbol
-  async getPriceHistory(symbol, interval = '1m', limit = 100) {
-    const history = await PriceHistory.findOne({ symbol: symbol.toUpperCase(), interval });
+  async getPriceHistory(symbol, interval = "1m", limit = 100) {
+    const history = await PriceHistory.findOne({
+      symbol: symbol.toUpperCase(),
+      interval,
+    });
     return history ? history.getLatestDataPoints(limit) : [];
   }
 
   // Get coin name from symbol
   getCoinName(symbol) {
     const names = {
-      BTC: 'Bitcoin',
-      ETH: 'Ethereum',
-      BNB: 'BNB',
-      SOL: 'Solana',
-      DOGE: 'Dogecoin',
+      BTC: "Bitcoin",
+      ETH: "Ethereum",
+      BNB: "BNB",
+      SOL: "Solana",
+      DOGE: "Dogecoin",
     };
     return names[symbol] || symbol;
   }
 
   // Shutdown service gracefully
   async shutdown() {
-    console.log('🛑 Shutting down price polling service...');
+    console.log("🛑 Shutting down price polling service...");
     this.stopPolling();
-    console.log('✅ Price polling service shut down');
+    console.log("✅ Price polling service shut down");
   }
 }
 
