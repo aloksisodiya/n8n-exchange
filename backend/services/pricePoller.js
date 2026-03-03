@@ -106,6 +106,7 @@ class PricePollingService extends EventEmitter {
 
       const data = response.data.data;
       const priceMap = {};
+      const fullPriceData = {};
 
       // Process each symbol
       for (const symbol of this.supportedSymbols) {
@@ -118,6 +119,7 @@ class PricePollingService extends EventEmitter {
           symbol: coinData.symbol,
           name: coinData.name,
           price: quote.price,
+          percentChange1h: quote.percent_change_1h,
           percentChange24h: quote.percent_change_24h,
           percentChange7d: quote.percent_change_7d,
           marketCap: quote.market_cap,
@@ -136,6 +138,11 @@ class PricePollingService extends EventEmitter {
         );
 
         priceMap[symbol] = quote.price;
+        fullPriceData[symbol] = {
+          price: quote.price,
+          percentChange1h: quote.percent_change_1h,
+          percentChange24h: quote.percent_change_24h,
+        };
 
         // Add to price history (1m interval)
         await this.addToPriceHistory(symbol, quote.price, quote.volume_24h);
@@ -144,8 +151,8 @@ class PricePollingService extends EventEmitter {
       // Update all user portfolios with new prices
       await this.updateAllPortfolios(priceMap);
 
-      // Emit price update event
-      this.emit("pricesUpdated", priceMap);
+      // Emit price update event with full data
+      this.emit("pricesUpdated", fullPriceData);
 
       // Silently update prices (uncomment line below for debugging)
       // console.log(`📈 Prices updated: ${Object.keys(priceMap).length} symbols`);
@@ -170,15 +177,18 @@ class PricePollingService extends EventEmitter {
       };
 
       const priceMap = {};
+      const fullPriceData = {};
 
       for (const symbol of this.supportedSymbols) {
         const price = mockPrices[symbol] || 100;
+        const percentChange1h = (Math.random() - 0.5) * 4; // -2% to +2%
         const percentChange24h = (Math.random() - 0.5) * 10; // -5% to +5%
 
         const priceData = {
           symbol,
           name: this.getCoinName(symbol),
           price,
+          percentChange1h,
           percentChange24h,
           percentChange7d: (Math.random() - 0.5) * 20,
           marketCap: price * 1000000000,
@@ -196,6 +206,11 @@ class PricePollingService extends EventEmitter {
         });
 
         priceMap[symbol] = price;
+        fullPriceData[symbol] = {
+          price,
+          percentChange1h,
+          percentChange24h,
+        };
 
         // Add to price history
         await this.addToPriceHistory(symbol, price, priceData.volume24h);
@@ -204,8 +219,8 @@ class PricePollingService extends EventEmitter {
       // Update all user portfolios with new prices
       await this.updateAllPortfolios(priceMap);
 
-      // Emit price update event
-      this.emit("pricesUpdated", priceMap);
+      // Emit price update event with full data
+      this.emit("pricesUpdated", fullPriceData);
 
       // Silently update prices (uncomment line below for debugging)
       // console.log(`📈 Mock prices updated: ${Object.keys(priceMap).length} symbols`);

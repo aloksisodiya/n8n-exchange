@@ -64,6 +64,20 @@ a { text-decoration: none; color: inherit; }
 ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 
+/* Price widget custom scrollbar */
+.price-widget-scroll::-webkit-scrollbar { width: 6px; }
+.price-widget-scroll::-webkit-scrollbar-track { 
+  background: transparent; 
+  margin: 4px 0;
+}
+.price-widget-scroll::-webkit-scrollbar-thumb { 
+  background: var(--border-light); 
+  border-radius: 3px; 
+}
+.price-widget-scroll::-webkit-scrollbar-thumb:hover { 
+  background: var(--text-muted); 
+}
+
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }

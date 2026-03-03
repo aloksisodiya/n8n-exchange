@@ -4,7 +4,6 @@ import { useAuth } from "../../context/AuthContext";
 const NAV = [
   { to: '/',           label: 'Dashboard', icon: '⬡' },
   { to: '/executions', label: 'History',   icon: '◎' },
-  { to: '/profile',    label: 'Profile',   icon: '👤' },
 ]
 
 export default function Topbar({

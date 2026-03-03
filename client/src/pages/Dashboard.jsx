@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useWorkflow } from '../context/WorkflowContext'
 import Topbar from '../components/Topbar/Topbar'
+import PriceWidget from '../components/PriceWidget/PriceWidget'
 import { formatDate, genId } from '../utils/helpers'
 import { NODE_TYPES, getDefaultConfig } from '../constants/nodeTypes'
 
@@ -471,7 +472,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Stats row */}
+        {/* Stats and Price Widget */}
         <div style={{ display: "flex", gap: 16 }}>
           <StatCard
             label="Total Workflows"
@@ -485,6 +486,7 @@ export default function Dashboard() {
             color="var(--accent-green)"
             icon="▶"
           />
+          <PriceWidget />
         </div>
 
         {/* Workflows grid */}
