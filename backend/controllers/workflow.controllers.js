@@ -24,7 +24,8 @@
  * Response: Array of workflows sorted by updatedAt desc
  */
 
-import { Workflow } from "../models/index.js";
+import { Execution, Workflow } from "../models/index.js";
+import workflowExecutor from "../services/executor.js";
 
 export const getAllWorkflows = async (req, res) => {
   try {
@@ -32,7 +33,7 @@ export const getAllWorkflows = async (req, res) => {
 
     const filter = { userId };
 
-    const {isActive} = req.query;
+    const { isActive } = req.query;
 
     if (isActive !== undefined) {
       filter.isActive = isActive === "true";
@@ -203,23 +204,23 @@ export const updateWorkflow = async (req, res) => {
  * Response: Success message
  */
 export const deleteWorkflow = async (req, res) => {
-  try{
+  try {
     const workflowId = req.params.id;
     const userId = req.user.uid;
 
     const workflow = Workflow.findOne({
       _id: workflowId,
-      userId
+      userId,
     });
 
-    if(!workflow){
+    if (!workflow) {
       return res.status(404).json({
-        success:false,
-        error:"Workflow not found"
-      })
+        success: false,
+        error: "Workflow not found",
+      });
     }
 
-    if(workflow.isActive){
+    if (workflow.isActive) {
       workflow.isActive = false;
       await workflow.save();
     }
@@ -227,15 +228,14 @@ export const deleteWorkflow = async (req, res) => {
     await Workflow.findByIdAndDelete(workflowId);
 
     res.status(200).json({
-      success:true,
-      message:"Workflow deleted successfully"
+      success: true,
+      message: "Workflow deleted successfully",
     });
-
-  } catch(error){
+  } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
-    })
+      message: error.message,
+    });
   }
 };
 
@@ -254,11 +254,54 @@ export const deleteWorkflow = async (req, res) => {
  * Response: Updated workflow with isActive = true
  */
 export const activateWorkflow = async (req, res) => {
-  res.status(501).json({
-    error: "Not implemented",
-    message: "activateWorkflow needs to be implemented",
-    hint: "Validate triggers exist, call workflowExecutor.scheduleWorkflow(workflow)",
-  });
+  try {
+    const userId = req.user.uid;
+    const workflowId = req.params.id;
+
+    const workflow = await Workflow.findOne({
+      _id: workflowId,
+      userId,
+    });
+
+    if (!workflow) {
+      return res.status(404).json({
+        success: false,
+        error: "Workflow not found",
+      });
+    }
+
+    if (workflow.isActive) {
+      return res.status(400).json({
+        success: false,
+        error: "Workflow is already active",
+      });
+    }
+
+    const triggerNodes = workflow.getTriggerNodes();
+
+    if (triggerNodes.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Workflow must have at least one trigger node",
+      });
+    }
+
+    await workflowExecutor.scheduleWorkflow(workflow);
+
+    workflow.isActive = true;
+    await workflow.save();
+
+    return res.status(200).json({
+      success: true,
+      data: workflow,
+      message: "Workflow activated successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -275,11 +318,45 @@ export const activateWorkflow = async (req, res) => {
  * Response: Updated workflow with isActive = false
  */
 export const deactivateWorkflow = async (req, res) => {
-  res.status(501).json({
-    error: "Not implemented",
-    message: "deactivateWorkflow needs to be implemented",
-    hint: "Call workflowExecutor.unscheduleWorkflow(workflowId)",
-  });
+  try {
+    const userId = req.user.uid;
+    const workflowId = req.params.id;
+
+    const workflow = await Workflow.findOne({
+      _id: workflowId,
+      userId,
+    });
+
+    if (!workflow) {
+      return res.status(404).json({
+        success: false,
+        error: "Workflow not found",
+      });
+    }
+
+    if (!workflow.isActive) {
+      return res.status(400).json({
+        success: false,
+        error: "Workflow is already inactive",
+      });
+    }
+
+    await workflowExecutor.unscheduleWorkflow(workflow._id);
+
+    workflow.isActive = false;
+    await workflow.save();
+
+    return res.status(200).json({
+      success: true,
+      data: workflow,
+      message: "Workflow activated successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -297,11 +374,59 @@ export const deactivateWorkflow = async (req, res) => {
  * Response: Execution object with results
  */
 export const executeWorkflow = async (req, res) => {
-  res.status(501).json({
-    error: "Not implemented",
-    message: "executeWorkflow needs to be implemented",
-    hint: "Create Execution, call workflowExecutor.executeWorkflow(workflow)",
-  });
+  try {
+    const workflowId = req.params.id;
+    const { triggerNodeId } = req.body;
+    const userId = req.user.uid;
+
+    const workflow = await Workflow.findOne({
+      _id: workflowId,
+      userId,
+    });
+
+    if (!workflow) {
+      return res.status(404).json({
+        success: false,
+        error: "workflow not found",
+      });
+    }
+
+    const execution = new Execution({
+      workflowId: workflow._id,
+      userId: workflow.userId,
+      status: "pending",
+      triggerType: "manual", // 'manual', 'timer', or 'price-monitor'
+      triggerData: {
+        triggeredBy: "user",
+        triggerNodeId: triggerNodeId || null,
+      },
+      totalNodes: workflow.nodes.length,
+      metadata: {
+        triggerNodeId: triggerNodeId,
+        executionMode: "manual", // 'manual' or 'automatic'
+      },
+    });
+
+    await execution.save();
+
+    await execution.start();
+
+    await workflowExecutor.executeWorkflow(workflow._id, {
+      triggerType: "manual",
+      triggerNodeId: triggerNodeId,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: execution,
+      message: "Workflow execution started",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -317,9 +442,60 @@ export const executeWorkflow = async (req, res) => {
  * Response: Array of executions sorted by startedAt desc
  */
 export const getWorkflowExecutions = async (req, res) => {
-  res.status(501).json({
-    error: "Not implemented",
-    message: "getWorkflowExecutions needs to be implemented",
-    hint: "Find Executions by workflowId with pagination",
-  });
+  try {
+    const workflowId = req.params.id;
+    const userId = req.user.uid;
+
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = parseInt(req.query.offset) || 0;
+    const { status } = req.query;
+
+    const workflow = await Workflow.findOne({ _id: workflowId, userId });
+
+    if (!workflow) {
+      return res.status(404).json({
+        success: false,
+        error: "Workflow not found",
+      });
+    }
+
+    const filter = { workflowId };
+
+    if (status) {
+      const validStatuses = ["pending", "running", "success", "failed", "cancelled"];
+      if (validStatuses.includes(status)) {
+        filter.status = status;
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+        });
+      }
+    }
+
+    const executions = await Execution.find(filter)
+      .sort({ startedAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .lean();
+
+    const total = await Execution.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      data: executions,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching workflow executions:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 };
