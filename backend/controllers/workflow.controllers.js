@@ -39,7 +39,7 @@ export const getAllWorkflows = async (req, res) => {
       filter.isActive = isActive === "true";
     }
 
-    const workflows = await Workflow.find(filter).toSorted({ updatedAt: -1 }).lean();
+    const workflows = await Workflow.find(filter).sort({ updatedAt: -1 }).lean();
 
     res.status(200).json({
       success: true,
@@ -165,7 +165,7 @@ export const updateWorkflow = async (req, res) => {
     if (nodes !== undefined) updateData.nodes = nodes;
     if (edges !== undefined) updateData.edges = edges;
 
-    const workflow = await workflow.findoneAndUpdate({ _id: workflowId, userId }, updateData, {
+    const workflow = await Workflow.findOneAndUpdate({ _id: workflowId, userId }, updateData, {
       new: true,
     });
 
@@ -208,7 +208,7 @@ export const deleteWorkflow = async (req, res) => {
     const workflowId = req.params.id;
     const userId = req.user.uid;
 
-    const workflow = Workflow.findOne({
+    const workflow = await Workflow.findOne({
       _id: workflowId,
       userId,
     });
