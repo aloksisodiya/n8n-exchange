@@ -15,15 +15,29 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const isFirebaseCustomToken = (token) => {
+    try {
+      const parts = token.split(".");
+      if (parts.length !== 3) return false;
+
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+
+      return (
+        payload?.aud ===
+        "https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit"
+      );
+    } catch {
+      return false;
+    }
+  };
+
   // Check if user is logged in on mount and set up token refresh
   useEffect(() => {
     const token = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
 
-    // Migration: Clear old custom tokens
-    // Custom tokens start with "eyJ" but are much longer than ID tokens
-    // and don't have proper JWT structure for our use case
-    if (token && token.length > 500) {
+    // Migration: Clear old custom tokens that were stored by older auth flows.
+    if (token && isFirebaseCustomToken(token)) {
       console.log("🔄 Detected old token format, clearing...");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
@@ -62,7 +76,7 @@ export function AuthProvider({ children }) {
     try {
       // Step 1: Call backend to get custom token
       const response = await authAPI.login({ email, password });
-      const { user: userData, token: customToken } = response.data.data;
+      const { user: userData, customToken } = response.data.data;
 
       // Step 2: Sign in to Firebase with custom token to get ID token
       const userCredential = await signInWithCustomToken(auth, customToken);
@@ -89,7 +103,7 @@ export function AuthProvider({ children }) {
     try {
       // Step 1: Call backend to create user and get custom token
       const response = await authAPI.register({ email, password, displayName });
-      const { user: userData, token: customToken } = response.data.data;
+      const { user: userData, customToken } = response.data.data;
 
       // Step 2: Sign in to Firebase with custom token to get ID token
       const userCredential = await signInWithCustomToken(auth, customToken);
@@ -139,9 +153,13 @@ export function AuthProvider({ children }) {
 
       // Send the ID token to your backend
       const response = await authAPI.googleSignIn({ idToken });
-      const { user, token } = response.data.data;
+      const { user, customToken } = response.data.data;
 
-      localStorage.setItem("token", token);
+      // Exchange custom token for Firebase session and persist ID token for API auth.
+      const userCredential = await signInWithCustomToken(auth, customToken);
+      const firebaseIdToken = await userCredential.user.getIdToken();
+
+      localStorage.setItem("token", firebaseIdToken);
       localStorage.setItem("user", JSON.stringify(user));
       setUser(user);
 

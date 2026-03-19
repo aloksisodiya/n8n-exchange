@@ -1,6 +1,36 @@
 import { adminAuth } from "../config/firebase.js";
 import { User, Portfolio } from "../models/index.js";
 
+const exchangeCustomTokenForIdToken = async (customToken) => {
+  const firebaseApiKey = process.env.FIREBASE_API_KEY;
+
+  if (!firebaseApiKey) {
+    throw new Error("Firebase API key not configured. Add FIREBASE_API_KEY to .env file");
+  }
+
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${firebaseApiKey}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        token: customToken,
+        returnSecureToken: true,
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error?.message || "Failed to exchange custom token for ID token");
+  }
+
+  return data;
+};
+
 /**
  * Register a new user
  */
@@ -44,6 +74,7 @@ export const register = async (req, res) => {
 
     // Generate custom token for immediate login
     const customToken = await adminAuth.createCustomToken(userRecord.uid);
+    const tokenData = await exchangeCustomTokenForIdToken(customToken);
 
     res.status(201).json({
       success: true,
@@ -54,7 +85,11 @@ export const register = async (req, res) => {
           email: userRecord.email,
           displayName: userRecord.displayName,
         },
-        token: customToken,
+        token: tokenData.idToken,
+        customToken,
+        idToken: tokenData.idToken,
+        refreshToken: tokenData.refreshToken,
+        expiresIn: tokenData.expiresIn,
       },
     });
   } catch (error) {
@@ -100,6 +135,7 @@ export const login = async (req, res) => {
 
     // Generate custom token
     const customToken = await adminAuth.createCustomToken(userRecord.uid);
+    const tokenData = await exchangeCustomTokenForIdToken(customToken);
 
     res.json({
       success: true,
@@ -111,7 +147,11 @@ export const login = async (req, res) => {
           displayName: userRecord.displayName,
           emailVerified: userRecord.emailVerified,
         },
-        token: customToken,
+        token: tokenData.idToken,
+        customToken,
+        idToken: tokenData.idToken,
+        refreshToken: tokenData.refreshToken,
+        expiresIn: tokenData.expiresIn,
       },
     });
   } catch (error) {
@@ -127,6 +167,69 @@ export const login = async (req, res) => {
     res.status(500).json({
       error: "Server error",
       message: "Failed to login",
+    });
+  }
+};
+
+/**
+ * Get ID token for testing (exchanges custom token for ID token)
+ * POST /api/auth/get-test-token
+ * For testing authenticated endpoints without Firebase client SDK
+ */
+export const getTestToken = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        error: "Bad request",
+        message: "Email is required",
+      });
+    }
+
+    // Get user by email
+    const userRecord = await adminAuth.getUserByEmail(email);
+
+    // Update lastLogin in MongoDB
+    const user = await User.findOne({ uid: userRecord.uid });
+    if (user) {
+      user.lastLogin = new Date();
+      await user.save();
+    }
+
+    // Generate custom token
+    const customToken = await adminAuth.createCustomToken(userRecord.uid);
+
+    const data = await exchangeCustomTokenForIdToken(customToken);
+
+    res.json({
+      success: true,
+      message: "ID token generated for testing",
+      data: {
+        user: {
+          uid: userRecord.uid,
+          email: userRecord.email,
+          displayName: userRecord.displayName,
+        },
+        idToken: data.idToken,
+        refreshToken: data.refreshToken,
+        expiresIn: data.expiresIn,
+        note: "Use this idToken in Authorization header as 'Bearer <idToken>'",
+      },
+    });
+  } catch (error) {
+    console.error("Get test token error:", error.message);
+
+    if (error.code === "auth/user-not-found") {
+      return res.status(404).json({
+        error: "User not found",
+        message: "No user found with this email",
+      });
+    }
+
+    res.status(500).json({
+      error: "Server error",
+      message: error.message || "Failed to generate test token",
     });
   }
 };
@@ -196,6 +299,7 @@ export const googleSignIn = async (req, res) => {
 
     // Generate custom token for the backend
     const customToken = await adminAuth.createCustomToken(userRecord.uid);
+    const tokenData = await exchangeCustomTokenForIdToken(customToken);
 
     res.json({
       success: true,
@@ -208,7 +312,11 @@ export const googleSignIn = async (req, res) => {
           photoURL: userRecord.photoURL,
           emailVerified: userRecord.emailVerified,
         },
-        token: customToken,
+        token: tokenData.idToken,
+        customToken,
+        idToken: tokenData.idToken,
+        refreshToken: tokenData.refreshToken,
+        expiresIn: tokenData.expiresIn,
       },
     });
   } catch (error) {
