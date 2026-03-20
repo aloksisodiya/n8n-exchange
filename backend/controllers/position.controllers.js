@@ -1,8 +1,10 @@
 import { Position, MarketPrice } from "../models/index.js";
+import CacheService from "../services/cacheService.js";
 
 /**
  * GET /api/positions
  * Get all positions (open + closed) for the user
+ * Supports filtering by symbol, type, and status
  */
 export const getAllPositions = async (req, res) => {
   try {
@@ -11,70 +13,85 @@ export const getAllPositions = async (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
     const { symbol, type, status } = req.query;
 
-    const filter = { userId };
+    // Build cache key based on filter parameters
+    const cacheKey = `positions:${userId}:all:${symbol || "all"}:${type || "all"}:${status || "all"}:${limit}:${offset}`;
 
-    if (symbol) {
-      filter.symbol = symbol.toUpperCase();
-    }
+    // Try to get from cache first (5 minute TTL for list queries)
+    const cached = await CacheService.getOrFetch(
+      cacheKey,
+      async () => {
+        const filter = { userId };
 
-    if (type && ["long", "short"].includes(type)) {
-      filter.type = type;
-    }
-
-    if (status && ["open", "closed", "liquidated"].includes(status)) {
-      filter.status = status;
-    }
-
-    const positions = await Position.find(filter)
-      .sort({ openedAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .lean();
-
-    const total = await Position.countDocuments(filter);
-
-    // Add current prices and unrealized PnL for open positions
-    const enrichedPositions = await Promise.all(
-      positions.map(async (position) => {
-        if (position.status === "open") {
-          const marketPrice = await MarketPrice.findOne({
-            symbol: position.symbol,
-          });
-          if (marketPrice) {
-            const currentPrice = marketPrice.price;
-            const sizeInUSD = position.size;
-            const entryPrice = position.entryPrice;
-            const leverage = position.leverage;
-
-            let unrealizedPnL = 0;
-            if (position.type === "long") {
-              unrealizedPnL = (sizeInUSD / entryPrice) * (currentPrice - entryPrice);
-            } else {
-              unrealizedPnL = (sizeInUSD / entryPrice) * (entryPrice - currentPrice);
-            }
-
-            const unrealizedPnLPercent = (unrealizedPnL / (sizeInUSD / leverage)) * 100;
-
-            return {
-              ...position,
-              currentPrice,
-              unrealizedPnL,
-              unrealizedPnLPercent,
-            };
-          }
+        if (symbol) {
+          filter.symbol = symbol.toUpperCase();
         }
-        return position;
-      })
+
+        if (type && ["long", "short"].includes(type)) {
+          filter.type = type;
+        }
+
+        if (status && ["open", "closed", "liquidated"].includes(status)) {
+          filter.status = status;
+        }
+
+        const positions = await Position.find(filter)
+          .sort({ openedAt: -1 })
+          .skip(offset)
+          .limit(limit)
+          .lean();
+
+        const total = await Position.countDocuments(filter);
+
+        // Add current prices and unrealized PnL for open positions
+        const enrichedPositions = await Promise.all(
+          positions.map(async (position) => {
+            if (position.status === "open") {
+              const currentPrice =
+                (await CacheService.getPrice(position.symbol)) ||
+                (await MarketPrice.findOne({ symbol: position.symbol }))?.price;
+
+              if (currentPrice) {
+                const sizeInUSD = position.size;
+                const entryPrice = position.entryPrice;
+                const leverage = position.leverage;
+
+                let unrealizedPnL = 0;
+                if (position.type === "long") {
+                  unrealizedPnL = (sizeInUSD / entryPrice) * (currentPrice - entryPrice);
+                } else {
+                  unrealizedPnL = (sizeInUSD / entryPrice) * (entryPrice - currentPrice);
+                }
+
+                const unrealizedPnLPercent = (unrealizedPnL / (sizeInUSD / leverage)) * 100;
+
+                return {
+                  ...position,
+                  currentPrice,
+                  unrealizedPnL,
+                  unrealizedPnLPercent,
+                };
+              }
+            }
+            return position;
+          })
+        );
+
+        return {
+          positions: enrichedPositions,
+          total,
+        };
+      },
+      300 // 5 minute cache TTL
     );
 
     res.status(200).json({
       success: true,
-      data: enrichedPositions,
+      data: cached.positions,
       pagination: {
-        total,
+        total: cached.total,
         limit,
         offset,
-        hasMore: offset + limit < total,
+        hasMore: offset + limit < cached.total,
       },
     });
   } catch (error) {

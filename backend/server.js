@@ -6,11 +6,16 @@ import { Server } from "socket.io";
 import router from "./routes/routes.js";
 import admin from "./config/firebase.js";
 import connectDB from "./config/db.js";
+import redisClient from "./config/redis.js";
 import workflowExecutor from "./services/executor.js";
 import pricePollingService from "./services/pricePoller.js";
 import liquidationMonitor from "./services/liquidationMonitor.js";
 import { SystemConfig, NodeType, User, Portfolio } from "./models/index.js";
-import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js";
+import {
+  errorHandler,
+  notFoundHandler,
+  DisconnectionError,
+} from "./middleware/error.middleware.js";
 
 dotenv.config();
 
@@ -30,11 +35,19 @@ const io = new Server(httpServer, {
   pingInterval: 25000,
   allowEIO3: true,
   connectTimeout: 45000,
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  reconnectionAttempts: 5,
 });
 
-// Handle Socket.io errors
+// Handle Socket.io errors and disconnections
 io.engine.on("connection_error", (err) => {
   console.log("🔌 Socket.io connection error:", err.code, err.message);
+});
+
+io.on("connect_error", (error) => {
+  console.error("🔌 Socket.io connect error:", error.message);
 });
 
 // Verify Firebase initialization
@@ -68,16 +81,31 @@ app.use("/api", router);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Socket.io connection handling
+// Socket.io connection handling with better disconnect management
 io.on("connection", (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
 
   socket.on("disconnect", (reason) => {
     console.log(`🔌 Client disconnected: ${socket.id} (${reason})`);
+    // Handle different disconnect reasons
+    if (reason === "server namespace disconnect") {
+      console.warn("⚠️  Server forced disconnect");
+    } else if (reason === "client namespace disconnect") {
+      console.log("Client initiated disconnect");
+    }
   });
 
   socket.on("error", (error) => {
     console.error(`🔌 Socket error for ${socket.id}:`, error.message);
+    socket.emit("error", {
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // Heartbeat to detect connection issues
+  socket.on("ping", () => {
+    socket.emit("pong", { timestamp: new Date().toISOString() });
   });
 
   // Join user-specific room for notifications
@@ -85,11 +113,30 @@ io.on("connection", (socket) => {
     socket.join(`user-${userId}`);
     console.log(`👤 User ${userId} joined their room`);
   });
+
+  // Listen for reconnection attempts
+  socket.on("reconnect_attempt", () => {
+    console.log(`🔄 Reconnection attempt from ${socket.id}`);
+  });
+
+  socket.on("reconnect_failed", () => {
+    console.error(`❌ Reconnection failed for ${socket.id}`);
+  });
 });
 
 // Listen to price updates and broadcast via WebSocket
 pricePollingService.on("pricesUpdated", (priceMap) => {
   io.emit("priceUpdate", priceMap);
+});
+
+// Listen to price polling errors
+pricePollingService.on("pricesError", (error) => {
+  console.error("🔌 Price polling error:", error.message);
+  io.emit("priceError", {
+    message: error.message,
+    service: error.service,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Listen to workflow execution events
@@ -150,38 +197,44 @@ async function startServer() {
     // 1. Connect to MongoDB
     await connectDB();
 
-    // 2. Initialize system configuration
+    // 2. Initialize Redis cache
+    console.log("💾 Initializing Redis cache...");
+    await redisClient.connect();
+
+    // 3. Initialize system configuration
     console.log("⚙️  Initializing system configuration...");
     await SystemConfig.initializeDefaults();
 
-    // 3. Initialize node types
+    // 4. Initialize node types
     console.log("📦 Initializing node types...");
     await NodeType.initializeDefaults();
 
-    // 4. Start price polling service
+    // 5. Start price polling service
     console.log("📊 Starting price polling service...");
     await pricePollingService.initialize();
 
-    // 5. Start workflow executor
+    // 6. Start workflow executor
     console.log("⚡ Starting workflow executor...");
     await workflowExecutor.initialize();
 
-    // 6. Start liquidation monitor
+    // 7. Start liquidation monitor
     console.log("⚠️  Starting liquidation monitor...");
     await liquidationMonitor.initialize();
 
-    // 7. Start HTTP server
+    // 8. Start HTTP server
     httpServer.listen(PORT, () => {
       console.log("\n✅ Server ready!");
       console.log(`   HTTP Server: http://localhost:${PORT}`);
       console.log(`   WebSocket: ws://localhost:${PORT}`);
       console.log(`   Firebase Auth: Enabled`);
       console.log(`   MongoDB: Connected`);
+      console.log(`   Redis Cache: ${redisClient.isConnected ? "✅ Connected" : "⚠️  Disabled"}`);
       console.log("\n📡 Services running:");
       console.log("   - Price Polling Service");
       console.log("   - Workflow Executor");
       console.log("   - Liquidation Monitor");
       console.log("   - WebSocket Server");
+      console.log("   - Redis Cache Service");
       console.log("\n✨ Ready to accept requests!\n");
     });
   } catch (error) {
@@ -204,6 +257,9 @@ async function gracefulShutdown(signal) {
     await workflowExecutor.shutdown();
     await pricePollingService.shutdown();
     await liquidationMonitor.shutdown();
+
+    // Close Redis connection
+    await redisClient.disconnect();
 
     // Close Socket.io
     io.close(() => {

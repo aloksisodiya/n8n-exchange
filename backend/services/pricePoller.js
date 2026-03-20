@@ -1,6 +1,8 @@
 import axios from "axios";
 import EventEmitter from "events";
 import { MarketPrice, PriceHistory, Portfolio, SystemConfig, Log } from "../models/index.js";
+import CacheService from "./cacheService.js";
+import { APIConnectionError } from "../middleware/error.middleware.js";
 
 class PricePollingService extends EventEmitter {
   constructor() {
@@ -10,6 +12,8 @@ class PricePollingService extends EventEmitter {
     this.supportedSymbols = ["BTC", "ETH", "BNB", "SOL", "DOGE"];
     this.cmcApiKey = process.env.CMC_API_KEY;
     this.pollIntervalMs = 10000; // 10 seconds
+    this.failureCount = 0;
+    this.maxFailures = 5;
   }
 
   // Initialize the price polling service
@@ -25,6 +29,9 @@ class PricePollingService extends EventEmitter {
       console.log(`📊 Price polling service initialized`);
       console.log(`   Supported symbols: ${this.supportedSymbols.join(", ")}`);
       console.log(`   Poll interval: ${this.pollIntervalMs}ms`);
+      console.log(
+        `   Redis caching: ${CacheService.isConnected() ? "✅ Enabled" : "⚠️  Disabled"}`
+      );
 
       // Do an initial fetch
       await this.fetchPrices();
@@ -36,6 +43,7 @@ class PricePollingService extends EventEmitter {
         metadata: {
           symbols: this.supportedSymbols,
           interval: this.pollIntervalMs,
+          cacheEnabled: CacheService.isConnected(),
         },
       });
     } catch (error) {
@@ -78,6 +86,7 @@ class PricePollingService extends EventEmitter {
       if (!this.cmcApiKey) {
         // If no API key, use mock data for development
         await this.fetchMockPrices();
+        this.failureCount = 0;
         return;
       }
 
@@ -92,6 +101,7 @@ class PricePollingService extends EventEmitter {
             symbol: this.supportedSymbols.join(","),
             convert: "USD",
           },
+          timeout: 10000, // 10 second timeout
         }
       );
 
@@ -134,6 +144,9 @@ class PricePollingService extends EventEmitter {
           percentChange24h: quote.percent_change_24h,
         };
 
+        // Cache individual price (60 second TTL)
+        await CacheService.cachePrice(symbol, priceData, 60);
+
         // Add to price history (1m interval) - don't let errors stop polling
         try {
           await this.addToPriceHistory(symbol, quote.price, quote.volume_24h);
@@ -142,23 +155,45 @@ class PricePollingService extends EventEmitter {
         }
       }
 
+      // Cache all prices (60 second TTL)
+      await CacheService.getOrFetch("prices:all", () => Promise.resolve(fullPriceData), 60);
+
       // Update all user portfolios with new prices
       await this.updateAllPortfolios(priceMap);
 
       // Emit price update event with full data
       this.emit("pricesUpdated", fullPriceData);
 
-      // Silently update prices (uncomment line below for debugging)
-      // console.log(`📈 Prices updated: ${Object.keys(priceMap).length} symbols`);
+      // Reset failure counter on successful fetch
+      this.failureCount = 0;
     } catch (error) {
-      console.error("❌ Failed to fetch prices:", error.message);
-      // Don't crash the service - just log the error
+      this.failureCount++;
+      const errorMsg =
+        error.code === "ERR_SOCKET_HANG_UP" ? "Connection reset by server" : error.message;
+
+      console.error(
+        `❌ Failed to fetch prices (attempt ${this.failureCount}/${this.maxFailures}):`,
+        errorMsg
+      );
+
+      // Emit error event after max failures
+      if (this.failureCount >= this.maxFailures) {
+        this.emit(
+          "pricesError",
+          new APIConnectionError(
+            "Failed to fetch prices from CoinMarketCap after multiple attempts",
+            "CoinMarketCap",
+            error.code,
+            error
+          )
+        );
+      }
+
       try {
         await Log.error("price", "Failed to fetch prices from CoinMarketCap", {
-          metadata: { error: error.message },
+          metadata: { error: errorMsg, attempts: this.failureCount },
         });
       } catch (logError) {
-        // If even logging fails, just console.error it
         console.error("Failed to log error:", logError.message);
       }
     }
@@ -299,26 +334,80 @@ class PricePollingService extends EventEmitter {
     }
   }
 
-  // Get current price for a symbol
+  // Get current price for a symbol (with cache)
   async getCurrentPrice(symbol) {
-    const marketPrice = await MarketPrice.findOne({
-      symbol: symbol.toUpperCase(),
-    });
-    return marketPrice ? marketPrice.price : null;
+    try {
+      const upperSymbol = symbol.toUpperCase();
+
+      // Try cache first (60s TTL)
+      const cached = await CacheService.getPrice(upperSymbol);
+      if (cached) {
+        return cached.price;
+      }
+
+      // Cache miss - fetch from DB
+      const marketPrice = await MarketPrice.findOne({ symbol: upperSymbol });
+      if (marketPrice) {
+        // Cache it for future requests
+        await CacheService.cachePrice(upperSymbol, marketPrice.toObject(), 60);
+        return marketPrice.price;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Failed to get price for ${symbol}:`, error.message);
+      return null;
+    }
   }
 
-  // Get all current prices
+  // Get all current prices (with cache)
   async getAllPrices() {
-    return await MarketPrice.getAllPrices();
+    try {
+      // Try cache first (60s TTL)
+      const cached = await CacheService.getOrFetch(
+        "prices:all",
+        async () => {
+          const prices = {};
+          for (const symbol of this.supportedSymbols) {
+            const price = await this.getCurrentPrice(symbol);
+            if (price) prices[symbol] = price;
+          }
+          return prices;
+        },
+        60
+      );
+
+      return cached || {};
+    } catch (error) {
+      console.error("Failed to get all prices:", error.message);
+      return {};
+    }
   }
 
-  // Get price history for a symbol
+  // Get price history for a symbol (with cache)
   async getPriceHistory(symbol, interval = "1m", limit = 100) {
-    const history = await PriceHistory.findOne({
-      symbol: symbol.toUpperCase(),
-      interval,
-    });
-    return history ? history.getLatestDataPoints(limit) : [];
+    try {
+      const upperSymbol = symbol.toUpperCase();
+      const cacheKey = `priceHistory:${upperSymbol}:${interval}:${limit}`;
+
+      // Try cache first (1 hour TTL for history)
+      const cached = await CacheService.getOrFetch(
+        cacheKey,
+        async () => {
+          const history = await PriceHistory.findOne({
+            symbol: upperSymbol,
+            interval,
+          });
+          return history ? history.getLatestDataPoints(limit) : [];
+        },
+        3600
+      );
+
+      return cached || [];
+    } catch (error) {
+      console.error(`Failed to get price history for ${symbol}:`, error.message);
+      return [];
+    }
   }
 
   // Get coin name from symbol
