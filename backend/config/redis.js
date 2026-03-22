@@ -16,12 +16,19 @@ class RedisClient {
     }
 
     try {
+      const redisPort = Number(process.env.REDIS_PORT || 6379);
+      const redisDb = Number(process.env.REDIS_DB || 0);
+      const useTls = process.env.REDIS_TLS === "true";
+
       this.client = redis.createClient({
-        host: process.env.REDIS_HOST || "localhost",
-        port: process.env.REDIS_PORT || 6379,
+        url: process.env.REDIS_URL || undefined,
+        username: process.env.REDIS_USERNAME || undefined,
         password: process.env.REDIS_PASSWORD || undefined,
-        db: process.env.REDIS_DB || 0,
+        database: redisDb,
         socket: {
+          host: process.env.REDIS_HOST || "localhost",
+          port: Number.isNaN(redisPort) ? 6379 : redisPort,
+          tls: useTls,
           reconnectStrategy: (retries) => {
             if (retries > 10) {
               console.log("❌ Redis: Max reconnection attempts reached");
